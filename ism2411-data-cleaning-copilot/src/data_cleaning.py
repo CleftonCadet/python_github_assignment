@@ -10,10 +10,11 @@ def load_data(file_path: str):
 # Clean data 
 
 # 1. Standardizes column names (lowercase, no spaces) for consistency
-def load_data(file_path: str):
-    df = pd.read_csv(file_path)
+def clean_column_names(df):
+    df = df.copy()
     df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_')
     return df
+
 
 # 2. Removes leading/trailing whitespace from product and category names to ensure data consistency.
 def strip_text_columns(df, columns):
@@ -22,18 +23,35 @@ def strip_text_columns(df, columns):
         df[col] = df[col].astype(str).str.strip()
     return df
 
-df_clean = strip_text_columns(df_clean, ["product_name", "category"])
-
 
 # 3. Handles missing prices and quantities to avoid calculation errors for analysis.
- def handle_missing_values(df):
-    df['price'].fillna(df['price'].median(), inplace=True)
-    df['quantity'].fillna(0, inplace=True)
+def handle_missing_values(df):
+    df = df.copy()
+
+    if "price" in df.columns:
+        df["price"] = pd.to_numeric(df["price"], errors="coerce")
+        df["price"].fillna(df["price"].median(), inplace=True)
+
+    if "quantity" in df.columns:
+        df["quantity"] = pd.to_numeric(df["quantity"], errors="coerce")
+        df["quantity"].fillna(0, inplace=True)
+
     return df
+
 
 # 4. Removes rows with negative prices or quantities since they are invalid for analysis.
 def remove_invalid_rows(df):
-    df = df[(df['price'] >= 0) & (df['quantity'] >= 0)]
+    df = df.copy()
+
+    condition = pd.Series(True, index=df.index)
+
+    if "price" in df.columns:
+        condition = condition & (df["price"] >= 0)
+
+    if "quantity" in df.columns:
+        condition = condition & (df["quantity"] >= 0)
+
+    df = df[condition]
     return df
 
 if __name__ == "__main__":
